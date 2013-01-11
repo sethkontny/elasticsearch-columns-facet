@@ -30,7 +30,18 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
 
     abstract public void aggregateFun(int docId, InternalFullColumnsFacet.FullEntry entry);
 
-
+    static int compare(Comparable o1, Comparable o2) {
+        if (o1 == null) {
+            if (o2 == null) {
+                return 0;
+            }
+            return 1;
+        }
+        if (o2 == null) {
+            return -1;
+        }
+        return o1.compareTo(o2);
+    }
 
     @Override
     public void onValue(int docId, String value) {

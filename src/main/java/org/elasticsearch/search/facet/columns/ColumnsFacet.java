@@ -81,7 +81,7 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
             {
                 int c = 0;
                 if (i < AggregatesId) {
-                    c = o1.keys()[i].compareTo(o2.keys()[i]);
+                    c = ColumnsProc.compare(o1.keys()[i], o2.keys()[i]);
                 } else {
                     switch (i) {
                         case CountId:

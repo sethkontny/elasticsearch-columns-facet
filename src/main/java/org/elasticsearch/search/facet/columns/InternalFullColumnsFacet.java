@@ -143,15 +143,36 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
     boolean cachedEntries;
     Collection<FullEntry> entries;
 
+    private long size;
+
+    private long from;
+
+    /**
+     * total holds meaningful value only after the reduce phase of all shards.
+     * It represents total groups ignoring size/limit.
+     * Size is also returned which respect not only offset and limit but the actual number of results.
+     */
+    private long total = -1L;
+
     private InternalFullColumnsFacet() {
     }
 
-    public InternalFullColumnsFacet(String name, ComparatorType comparatorType, ExtTLongObjectHashMap<InternalFullColumnsFacet.FullEntry> entries, boolean cachedEntries) {
+    public InternalFullColumnsFacet(
+            String name,
+            ComparatorType comparatorType,
+            ExtTLongObjectHashMap<InternalFullColumnsFacet.FullEntry> entries,
+            boolean cachedEntries,
+            long size,
+            long from,
+            long total) {
         this.name = name;
         this.comparatorType = comparatorType;
         this.tEntries = entries;
         this.cachedEntries = cachedEntries;
         this.entries = entries.valueCollection();
+        this.size = size;
+        this.from = from;
+        this.total = total;
     }
 
     @Override
@@ -172,6 +193,30 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
     @Override
     public String getType() {
         return type();
+    }
+
+    public long size() {
+        return this.size;
+    }
+
+    public long getSize() {
+        return size();
+    }
+
+    public long from() {
+        return this.from;
+    }
+
+    public long getFrom() {
+        return from();
+    }
+
+    public long total() {
+        return this.total;
+    }
+
+    public long getTotal() {
+        return total();
     }
 
     @Override
@@ -202,12 +247,33 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
 
     @Override
     public Facet reduce(String name, List<Facet> facets) {
+
+        int offset;
+        int limit;
+        int end;
+
         if (facets.size() == 1) {
             // we need to sort it
             InternalFullColumnsFacet internalFacet = (InternalFullColumnsFacet) facets.get(0);
             List<FullEntry> entries = internalFacet.entries();
             Collections.sort(entries, comparatorType.comparator());
             internalFacet.releaseCache();
+
+            // handle paging
+            if (size > 0) {
+                offset = (int)Math.min(entries.size(), from);
+                limit = (int)Math.min(entries.size() - offset, size);
+                end = offset + limit;
+
+                InternalFullColumnsFacet retFacet = new InternalFullColumnsFacet();
+                entries = entries.subList(offset, limit);
+                retFacet.total = entries.size();
+                retFacet.name = name;
+                retFacet.comparatorType = comparatorType;
+                retFacet.entries = entries.subList(offset, limit);
+                internalFacet = retFacet;
+            }
+
             return internalFacet;
         }
 
@@ -237,8 +303,17 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         // sort
         Object[] values = map.internalValues();
         Arrays.sort(values, (Comparator) comparatorType.comparator());
-        List<FullEntry> ordered = new ArrayList<FullEntry>(map.size());
-        for (int i = 0; i < map.size(); i++) {
+
+        offset = (int)Math.min(map.size(), from);
+        limit = (size > 0) ?
+                (int)Math.min(map.size() - offset, size) :
+                map.size() - offset;
+        end = offset + limit;
+
+        List<FullEntry> ordered = new ArrayList<FullEntry>(limit);
+        total = map.size();
+
+        for (int i = offset; i < end; i++) {
             FullEntry value = (FullEntry) values[i];
             if (value == null) {
                 break;
@@ -253,11 +328,14 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         ret.name = name;
         ret.comparatorType = comparatorType;
         ret.entries = ordered;
+        ret.total = total;
         return ret;
     }
 
     static final class Fields {
         static final XContentBuilderString _TYPE = new XContentBuilderString("_type");
+        static final XContentBuilderString GROUP_TOTOAL = new XContentBuilderString("total");
+        static final XContentBuilderString SIZE = new XContentBuilderString("size");
         static final XContentBuilderString ENTRIES = new XContentBuilderString("entries");
         static final XContentBuilderString KEY = new XContentBuilderString("key");
         static final XContentBuilderString KEYS = new XContentBuilderString("keys");
@@ -273,6 +351,8 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(name);
         builder.field(Fields._TYPE, ColumnsFacet.TYPE);
+        builder.field(Fields.GROUP_TOTOAL, total);
+        builder.field(Fields.SIZE, entries.size());
         builder.startArray(Fields.ENTRIES);
         for (Entry entry : entries) {
             builder.startObject();
@@ -313,7 +393,8 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
             }
             comparatorType = new ComparatorType((byte)-1, "keys", new MultiFieldsComparator(orders, des));
         }
-
+        this.size = in.readLong();
+        this.from = in.readLong();
         cachedEntries = false;
         int size = in.readVInt();
         entries = new ArrayList<FullEntry>(size);
@@ -337,6 +418,8 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
                 idx++;
             }
         }
+        out.writeLong(this.size);
+        out.writeLong(this.from);
         out.writeVInt(entries.size());
         for (FullEntry entry : entries) {
             out.writeStringArray(entry.keys);

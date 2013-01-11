@@ -47,6 +47,9 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
         ColumnsFacet.ComparatorType comparatorType = ColumnsFacet.ComparatorType.KEY;
         XContentParser.Token token;
         String fieldName = null;
+        long size = 10L; // following ES convention of limiting to 10 rows.
+        long from = 0L;
+
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 fieldName = parser.currentName();
@@ -60,6 +63,8 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
                         keyFields.add(parser.text());
                     }
                 } else if ("orders".equalsIgnoreCase(fieldName)) {
+                    // TODO: Currently "orders" must appear after "key_fields".
+                    // TODO: Rework this so that their order is independent.
                     List<String> orders = Lists.newArrayListWithCapacity(4);
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                         orders.add(parser.text());
@@ -76,6 +81,10 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
                     valueScript = parser.text();
                 } else if ("order".equals(fieldName) || "comparator".equals(fieldName)) {
                     comparatorType = ColumnsFacet.ComparatorType.fromString(parser.text());
+                } else if ("size".equals(fieldName)) {
+                    size = parser.longValue();
+                } else if ("from".equals(fieldName)) {
+                    from = parser.longValue();
                 } else if ("lang".equals(fieldName)) {
                     scriptLang = parser.text();
                 }
@@ -83,10 +92,10 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
         }
 
         if (keyFields.isEmpty()) {
-            throw new FacetPhaseExecutionException(facetName, "Key fields are required to be set for columns facet.");
+            throw new FacetPhaseExecutionException(facetName, "key fields is required to be set for histogram facet, either using [field] or using [key_field]");
         }
 
-        return new ColumnsFacetCollector(facetName, keyFields, valueField, comparatorType, context);
+        return new ColumnsFacetCollector(facetName, keyFields, valueField, size, from, comparatorType, context);
     }
 
     @Override

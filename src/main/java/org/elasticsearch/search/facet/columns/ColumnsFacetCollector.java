@@ -37,14 +37,20 @@ public class ColumnsFacetCollector extends AbstractFacetCollector {
 
     private final int keySize;
 
+    private final long size;
+
+    private final long from;
+
     private final ColumnsProc columnsProc;
 
-    public ColumnsFacetCollector(String facetName, List<String> keyFieldNames, String valueFieldName, ColumnsFacet.ComparatorType comparatorType, SearchContext context) {
+    public ColumnsFacetCollector(String facetName, List<String> keyFieldNames, String valueFieldName, long size, long from, ColumnsFacet.ComparatorType comparatorType, SearchContext context) {
         super(facetName);
         this.comparatorType = comparatorType;
         this.fieldDataCache = context.fieldDataCache();
         this.keyFieldNames = keyFieldNames;
         this.keyFieldDataTypes = new HashMap<String, FieldDataType>();
+        this.size = size;
+        this.from = from;
 
         MapperService.SmartNameFieldMappers smartMappers = null;
         keySize = keyFieldNames.size();
@@ -88,6 +94,6 @@ public class ColumnsFacetCollector extends AbstractFacetCollector {
 
     @Override
     public Facet facet() {
-        return new InternalFullColumnsFacet(facetName, comparatorType, columnsProc.entries, true);
+        return new InternalFullColumnsFacet(facetName, comparatorType, columnsProc.entries, true, size, from, -1L);
     }
 }

@@ -19,12 +19,12 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
     public static final String TYPE = "columns";
 
     /**
-     * An ordered list of histogram facet entries.
+     * An ordered list of columns facet entries.
      */
     List<? extends Entry> entries();
 
     /**
-     * An ordered list of histogram facet entries.
+     * An ordered list of columns facet entries.
      */
     List<? extends Entry> getEntries();
 
@@ -292,7 +292,7 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
                 case 15:
                     return MEAN;
                 default:
-                    throw new ElasticSearchIllegalArgumentException("No type argument match for histogram comparator [" + id + "]");
+                    throw new ElasticSearchIllegalArgumentException("No type argument match for columns comparator [" + id + "]");
             }
         }
 
@@ -312,30 +312,30 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
             } else if ("keys".equals(type)) {
                 return null;
             }
-            throw new ElasticSearchIllegalArgumentException("No type argument match for histogram comparator [" + type + "]");
+            throw new ElasticSearchIllegalArgumentException("No type argument match for columns comparator [" + type + "]");
         }
     }
 
     public interface Entry {
 
         /**
-         * The key value of the histogram.
+         * The key value of the columns.
          */
         String[] keys();
 
         /**
-         * The key value of the histogram.
+         * The key value of the columns.
          */
         String[] getKeys();
 
 
         /**
-         * The key value of the histogram.
+         * The key value of the columns.
          */
         long key();
 
         /**
-         * The key value of the histogram.
+         * The key value of the columns.
          */
         long getKey();
 

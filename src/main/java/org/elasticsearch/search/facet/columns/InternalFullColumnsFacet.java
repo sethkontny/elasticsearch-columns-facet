@@ -33,7 +33,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
 
 
     /**
-     * A columns facet entry representing a single entry within the result of a histogram facet.
+     * A columns facet entry representing a single entry within the result of a columns facet.
      */
     public static class FullEntry implements Entry {
         String[] keys;
@@ -280,8 +280,8 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         ExtTLongObjectHashMap<FullEntry> map = CacheRecycler.popLongObjectMap();
 
         for (Facet facet : facets) {
-            InternalFullColumnsFacet histoFacet = (InternalFullColumnsFacet) facet;
-            for (FullEntry fullEntry : histoFacet.entries) {
+            InternalFullColumnsFacet columnsFacet = (InternalFullColumnsFacet) facet;
+            for (FullEntry fullEntry : columnsFacet.entries) {
                 FullEntry current = map.get(fullEntry.key);
                 if (current != null) {
                     current.count += fullEntry.count;
@@ -297,7 +297,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
                     map.put(fullEntry.key, fullEntry);
                 }
             }
-            histoFacet.releaseCache();
+            columnsFacet.releaseCache();
         }
 
         // sort

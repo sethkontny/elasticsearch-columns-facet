@@ -88,7 +88,7 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
         }
 
         if (keyFields.isEmpty()) {
-            throw new FacetPhaseExecutionException(facetName, "key fields is required to be set for histogram facet, either using [field] or using [key_field]");
+            throw new FacetPhaseExecutionException(facetName, "key fields is required to be set for columns facet, either using [field] or using [key_field]");
         }
 
         if (!orders.isEmpty()) {

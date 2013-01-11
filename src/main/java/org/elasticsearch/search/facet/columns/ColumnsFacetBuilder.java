@@ -31,7 +31,7 @@ public class ColumnsFacetBuilder extends AbstractFacetBuilder {
     }
 
     /**
-     * The field name to perform the histogram facet. Translates to perform the histogram facet
+     * The field name to perform the columns facet. Translates to perform the columns facet
      * using the provided field as both the {@link #keyField(String)} and {@link #valueField(String)}.
      */
     public ColumnsFacetBuilder field(String field) {
@@ -40,7 +40,7 @@ public class ColumnsFacetBuilder extends AbstractFacetBuilder {
     }
 
     /**
-     * The field name to use in order to control where the hit will "fall into" within the histogram
+     * The field name to use in order to control where the hit will "fall into" within the columns
      * entries. Essentially, using the key field numeric value, the hit will be "rounded" into the relevant
      * bucket controlled by the interval.
      */
@@ -126,10 +126,10 @@ public class ColumnsFacetBuilder extends AbstractFacetBuilder {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         if (keyFieldName == null) {
-            throw new SearchSourceBuilderException("field must be set on histogram facet for facet [" + name + "]");
+            throw new SearchSourceBuilderException("field must be set on columns facet for facet [" + name + "]");
         }
         if (interval < 0) {
-            throw new SearchSourceBuilderException("interval must be set on histogram facet for facet [" + name + "]");
+            throw new SearchSourceBuilderException("interval must be set on columns facet for facet [" + name + "]");
         }
         builder.startObject(name);
 

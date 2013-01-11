@@ -39,6 +39,7 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
     @Override
     public FacetCollector parse(String facetName, XContentParser parser, SearchContext context) throws IOException {
         List<String> keyFields = Lists.newArrayListWithCapacity(4);
+        List<String> orders = Lists.newArrayListWithCapacity(4);
         String valueField = null;
         String keyScript = null;
         String valueScript = null;
@@ -63,14 +64,9 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
                         keyFields.add(parser.text());
                     }
                 } else if ("orders".equalsIgnoreCase(fieldName)) {
-                    // TODO: Currently "orders" must appear after "key_fields".
-                    // TODO: Rework this so that their order is independent.
-                    List<String> orders = Lists.newArrayListWithCapacity(4);
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                         orders.add(parser.text());
                     }
-                    comparatorType = ColumnsFacet.MultiFieldsComparator.generateComparator(
-                            keyFields.toArray(new String[0]), orders.toArray(new String[0]));
                 }
             } else if (token.isValue()) {
                 if ("value_field".equals(fieldName) || "valueField".equals(fieldName)) {
@@ -93,6 +89,11 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
 
         if (keyFields.isEmpty()) {
             throw new FacetPhaseExecutionException(facetName, "key fields is required to be set for histogram facet, either using [field] or using [key_field]");
+        }
+
+        if (!orders.isEmpty()) {
+            comparatorType = ColumnsFacet.MultiFieldsComparator.generateComparator(
+                    keyFields.toArray(new String[0]), orders.toArray(new String[0]));
         }
 
         return new ColumnsFacetCollector(facetName, keyFields, valueField, size, from, comparatorType, context);

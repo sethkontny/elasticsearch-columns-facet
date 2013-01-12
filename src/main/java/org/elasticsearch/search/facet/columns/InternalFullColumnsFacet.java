@@ -270,7 +270,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
                 retFacet.total = entries.size();
                 retFacet.name = name;
                 retFacet.comparatorType = comparatorType;
-                retFacet.entries = entries.subList(offset, limit);
+                retFacet.entries = entries.subList(offset, offset + limit);
                 internalFacet = retFacet;
             }
 

@@ -20,6 +20,13 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
         }
     }
 
+    // Maximum distinct group allowered per shard before a shard throw exception.
+    // 0 or clear means no limit.
+    // Usage:
+    // in config/elasticsearch.yml
+    // columns_facet.max_distinct_groups = 10000
+    static int MaxDistinctGroups = Integer.parseInt(Config.get("columns_facet.max_distinct_groups", "0"));
+
     final ExtTLongObjectHashMap<InternalFullColumnsFacet.FullEntry> entries = CacheRecycler.popLongObjectMap();
 
 
@@ -62,6 +69,9 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
         if (entry == null) {
             entry = new InternalFullColumnsFacet.FullEntry(keys, bucket, 0, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0, 0);
             entries.put(bucket, entry);
+            if (MaxDistinctGroups > 0 && entries.size() > MaxDistinctGroups) {
+                throw new TooManyDistinctValuesException(MaxDistinctGroups);
+            }
         }
         entry.count++;
         aggregateFun(docId, entry);

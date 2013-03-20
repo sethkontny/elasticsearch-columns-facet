@@ -5,6 +5,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.field.data.FieldDataType;
 import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.FacetCollector;
 import org.elasticsearch.search.facet.FacetPhaseExecutionException;
@@ -38,8 +39,9 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
      */
     @Override
     public FacetCollector parse(String facetName, XContentParser parser, SearchContext context) throws IOException {
-        List<String> keyFields = Lists.newArrayListWithCapacity(4);
-        List<String> orders = Lists.newArrayListWithCapacity(4);
+        List<String> keyFields = Lists.newArrayListWithCapacity(ColumnsFacet.NUM_COLUMNS_INIT_SIZE);
+        List<String> orders = Lists.newArrayListWithCapacity(ColumnsFacet.NUM_COLUMNS_INIT_SIZE);
+        List<ComparableConverter> keyComparableConverters = Lists.newArrayListWithCapacity(ColumnsFacet.NUM_COLUMNS_INIT_SIZE);
         String valueField = null;
         String keyScript = null;
         String valueScript = null;
@@ -61,7 +63,11 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
             } else if (token == XContentParser.Token.START_ARRAY) {
                 if ("key_fields".equalsIgnoreCase(fieldName)) {
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                        keyFields.add(parser.text());
+                        String keyField = parser.text();
+                        keyFields.add(keyField);
+                        FieldDataType datatype = context.smartFieldMappers(keyField).mapper().fieldDataType();
+                        ComparableConverter comparableConverter = ComparableConverter.converters.get(datatype);
+                        keyComparableConverters.add(comparableConverter);
                     }
                 } else if ("orders".equalsIgnoreCase(fieldName)) {
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
@@ -93,7 +99,7 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
 
         if (!orders.isEmpty()) {
             comparatorType = ColumnsFacet.MultiFieldsComparator.generateComparator(
-                    keyFields.toArray(new String[0]), orders.toArray(new String[0]));
+                    keyFields.toArray(new String[0]), orders.toArray(new String[0]), keyComparableConverters.toArray(new ComparableConverter[0]));
         }
 
         return new ColumnsFacetCollector(facetName, keyFields, valueField, size, from, comparatorType, context);

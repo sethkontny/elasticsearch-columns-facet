@@ -9,6 +9,8 @@ import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.search.facet.Facet;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.*;
 
 public class InternalFullColumnsFacet extends InternalColumnsFacet {
@@ -384,14 +386,21 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         if (comparatorTypeId >= 0) {
             comparatorType = ComparatorType.fromId(comparatorTypeId);
         } else {
+            ObjectInputStream oin = new ObjectInputStream(in);
             int ordersMax = in.readInt();
             Integer[] orders = new Integer[ordersMax];
             boolean[] des = new boolean[ordersMax];
+            ComparableConverter[] convs = new ComparableConverter[ordersMax];
             for (int i = 0; i < ordersMax; i++) {
                 orders[i] = in.readInt();
                 des[i] = in.readBoolean();
+                try {
+                    convs[i] = (ComparableConverter)(oin.readObject());
+                } catch (ClassNotFoundException ex) {
+                    throw new IOException(ex);
+                }
             }
-            comparatorType = new ComparatorType((byte)-1, "keys", new MultiFieldsComparator(orders, des));
+            comparatorType = new ComparatorType((byte)-1, "keys", new MultiFieldsComparator(orders, des, convs));
         }
         this.size = in.readLong();
         this.from = in.readLong();
@@ -408,13 +417,16 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         out.writeUTF(name);
         out.writeByte(comparatorType.id());
         if (comparatorType.comparator() instanceof MultiFieldsComparator) {
+            ObjectOutputStream oout = new ObjectOutputStream(out);
             Integer[] orders = ((MultiFieldsComparator)comparatorType.comparator()).getOrders();
             boolean[] des = ((MultiFieldsComparator)comparatorType.comparator()).getDes();
+            ComparableConverter[] convs = ((MultiFieldsComparator)comparatorType.comparator()).getComparableConverter();
             out.writeInt(orders.length);
             int idx = 0;
             for (Integer i : orders) {
                 out.writeInt(i);
                 out.writeBoolean(des[idx]);
+                oout.writeObject(convs[idx]);
                 idx++;
             }
         }

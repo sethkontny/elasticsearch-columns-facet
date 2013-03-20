@@ -18,6 +18,8 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
      */
     public static final String TYPE = "columns";
 
+    static final int NUM_COLUMNS_INIT_SIZE = 4;
+
     /**
      * An ordered list of columns facet entries.
      */
@@ -51,6 +53,8 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
 
         private boolean[] des; // true if descending order
 
+        private ComparableConverter[] comparableConverters;
+
         public Integer[] getOrders() {
             return orders;
         }
@@ -59,9 +63,14 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
             return des;
         }
 
-        public MultiFieldsComparator(Integer[] orders, boolean[] des) {
+        public ComparableConverter[] getComparableConverter() {
+            return comparableConverters;
+        }
+
+        public MultiFieldsComparator(Integer[] orders, boolean[] des, ComparableConverter[] comparableConverters) {
             this.orders = orders;
             this.des = des;
+            this.comparableConverters = comparableConverters;
         }
 
         public int compare(Entry o1, Entry o2) {
@@ -81,7 +90,10 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
             {
                 int c = 0;
                 if (i < AggregatesId) {
-                    c = ColumnsProc.compare(o1.keys()[i], o2.keys()[i]);
+                    ComparableConverter cc = comparableConverters[i];
+                    Comparable c1 = cc.toComparable(o1.keys()[i]);
+                    Comparable c2 = cc.toComparable(o2.keys()[i]);
+                    c = ColumnsProc.compare(c1, c2);
                 } else {
                     switch (i) {
                         case CountId:
@@ -107,7 +119,7 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
             return 0;
         }
 
-        static public ComparatorType generateComparator(String[] groups, String[] orders)
+        static public ComparatorType generateComparator(String[] groups, String[] orders, ComparableConverter[] comparableConverters)
         {
             Integer[] indexOrders = new Integer[orders.length];
             boolean[] des = new boolean[orders.length];
@@ -132,12 +144,12 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
                 orderIdx++;
             }
 
-            return generateComparator(indexOrders, des);
+            return generateComparator(indexOrders, des, comparableConverters);
         }
 
-        static public ComparatorType generateComparator(Integer[] orders, boolean[] des)
+        static public ComparatorType generateComparator(Integer[] orders, boolean[] des, ComparableConverter[] comparableConverters)
         {
-            Comparator comp = new MultiFieldsComparator(orders, des);
+            Comparator comp = new MultiFieldsComparator(orders, des, comparableConverters);
             return new ComparatorType((byte)-1, "keys", comp);
         }
     }

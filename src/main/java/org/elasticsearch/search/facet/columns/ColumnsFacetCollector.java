@@ -4,6 +4,7 @@ import org.apache.lucene.index.IndexReader;
 import org.elasticsearch.index.cache.field.data.FieldDataCache;
 import org.elasticsearch.index.field.data.FieldData;
 import org.elasticsearch.index.field.data.FieldDataType;
+import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.facet.AbstractFacetCollector;
 import org.elasticsearch.search.facet.Facet;
@@ -51,6 +52,7 @@ public class ColumnsFacetCollector extends AbstractFacetCollector {
         this.keyFieldDataTypes = new HashMap<String, FieldDataType>();
         this.size = size;
         this.from = from;
+        List<FieldMapper> keyFieldsMapper = new ArrayList<FieldMapper>(keyFieldNames.size());
 
         MapperService.SmartNameFieldMappers smartMappers = null;
         keySize = keyFieldNames.size();
@@ -59,7 +61,9 @@ public class ColumnsFacetCollector extends AbstractFacetCollector {
             if (smartMappers == null || !smartMappers.hasMapper()) {
                 throw new FacetPhaseExecutionException(facetName, "No mapping found for field [" + keyField + "]");
             }
-            keyFieldDataTypes.put(keyField, smartMappers.mapper().fieldDataType());
+            FieldMapper mapper = smartMappers.mapper();
+            keyFieldsMapper.add(mapper);
+            keyFieldDataTypes.put(keyField, mapper.fieldDataType());
             // add type filter if there is exact doc mapper associated with it
             if (smartMappers.explicitTypeInNameWithDocMapper()) {
                 setFilter(context.filterCache().cache(smartMappers.docMapper().typeFilter()));
@@ -74,7 +78,7 @@ public class ColumnsFacetCollector extends AbstractFacetCollector {
         valueIndexFieldName = smartMappers.mapper().names().indexName();
         valueFieldDataType = smartMappers.mapper().fieldDataType();
 
-        columnsProc = ColumnsProc.getColumnProc(valueFieldDataType);
+        columnsProc = ColumnsProc.getColumnProc(keyFieldsMapper, valueFieldDataType);
     }
 
     @Override

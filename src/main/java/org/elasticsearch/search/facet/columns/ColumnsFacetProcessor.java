@@ -5,7 +5,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.field.data.FieldDataType;
+import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.FacetCollector;
 import org.elasticsearch.search.facet.FacetPhaseExecutionException;
@@ -65,8 +65,8 @@ public class ColumnsFacetProcessor extends AbstractComponent implements FacetPro
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                         String keyField = parser.text();
                         keyFields.add(keyField);
-                        FieldDataType datatype = context.smartFieldMappers(keyField).mapper().fieldDataType();
-                        ComparableConverter comparableConverter = ComparableConverter.converters.get(datatype);
+                        FieldMapper mapper = context.smartFieldMappers(keyField).mapper();
+                        ComparableConverter comparableConverter = ComparableConverter.converters.get(mapper.getClass());
                         keyComparableConverters.add(comparableConverter);
                     }
                 } else if ("orders".equalsIgnoreCase(fieldName)) {

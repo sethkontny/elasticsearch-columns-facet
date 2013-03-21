@@ -5,18 +5,20 @@ import org.elasticsearch.common.trove.ExtTLongObjectHashMap;
 import org.elasticsearch.index.field.data.FieldData;
 import org.elasticsearch.index.field.data.FieldDataType;
 import org.elasticsearch.index.field.data.strings.StringFieldDataType;
+import org.elasticsearch.index.mapper.FieldMapper;
 
 import java.util.ArrayList;
 import java.util.List;
 
 abstract class ColumnsProc implements FieldData.StringValueInDocProc {
 
-    static ColumnsProc getColumnProc(FieldDataType valueDataType) {
+    static ColumnsProc getColumnProc(List<FieldMapper> keyFieldsMapper, FieldDataType valueDataType) {
+
         if (valueDataType instanceof StringFieldDataType) {
-            return new NonNumericColumnsProc();
+            return new NonNumericColumnsProc(keyFieldsMapper);
 
         } else {
-            return new NumericColumnsProc();
+            return new NumericColumnsProc(keyFieldsMapper);
         }
     }
 
@@ -31,6 +33,8 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
 
 
     List<FieldData> keyFieldsData = new ArrayList<FieldData>();
+
+    List<FieldMapper> keyFieldsMapper;
 
     abstract void setFieldData(FieldData fieldData);
 
@@ -57,7 +61,9 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
         String[] keys = new String[keyFieldsData.size()];
         int idx = 0;
         for (FieldData keyFieldData : keyFieldsData) {
-            keys[idx] = keyFieldData.docFieldData(docId).getStringValue();
+            FieldMapper mapper = keyFieldsMapper.get(idx);
+            ComparableConverter conv = ComparableConverter.converters.get(mapper.getClass());
+            keys[idx] = conv.getStringValue(docId, keyFieldData);
             keyBuf.append(keys[idx]);
             keyBuf.append(",");
             idx++;
@@ -81,3 +87,4 @@ abstract class ColumnsProc implements FieldData.StringValueInDocProc {
 
     }
 }
+

@@ -1,8 +1,15 @@
 package org.elasticsearch.search.facet.columns;
 
 import org.elasticsearch.index.field.data.FieldData;
+import org.elasticsearch.index.mapper.FieldMapper;
+
+import java.util.List;
 
 class NonNumericColumnsProc extends ColumnsProc {
+
+    public NonNumericColumnsProc(List<FieldMapper> keyFieldsMapper) {
+        this.keyFieldsMapper = keyFieldsMapper;
+    }
 
     FieldData valueFieldData;
 

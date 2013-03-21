@@ -2,10 +2,16 @@ package org.elasticsearch.search.facet.columns;
 
 import org.elasticsearch.index.field.data.FieldData;
 import org.elasticsearch.index.field.data.NumericFieldData;
+import org.elasticsearch.index.mapper.FieldMapper;
+
+import java.util.List;
 
 
 class NumericColumnsProc extends ColumnsProc {
 
+    public NumericColumnsProc(List<FieldMapper> keyFieldsMapper) {
+        this.keyFieldsMapper = keyFieldsMapper;
+    }
 
     NumericFieldData valueFieldData;
 

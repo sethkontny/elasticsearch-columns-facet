@@ -3,7 +3,7 @@ package org.elasticsearch.search.facet.columns;
 import org.elasticsearch.common.CacheRecycler;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.trove.ExtTLongObjectHashMap;
+import org.elasticsearch.common.trove.ExtTHashMap;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.search.facet.Facet;
@@ -39,14 +39,14 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
      */
     public static class FullEntry implements Entry {
         String[] keys;
-        long key;
+        String key;
         long count;
         long totalCount;
         double total;
         double min = Double.POSITIVE_INFINITY;
         double max = Double.NEGATIVE_INFINITY;
 
-        public FullEntry(String[] keys, long key, long count, double min, double max, long totalCount, double total) {
+        public FullEntry(String[] keys, String key, long count, double min, double max, long totalCount, double total) {
             this.keys = keys;
             this.key = key;
             this.count = count;
@@ -67,12 +67,12 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         }
 
         @Override
-        public long key() {
+        public String key() {
             return key;
         }
 
         @Override
-        public long getKey() {
+        public String getKey() {
             return key();
         }
 
@@ -141,7 +141,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
 
     private ComparatorType comparatorType;
 
-    ExtTLongObjectHashMap<FullEntry> tEntries;
+    ExtTHashMap<String, FullEntry> tEntries;
     boolean cachedEntries;
     Collection<FullEntry> entries;
 
@@ -162,7 +162,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
     public InternalFullColumnsFacet(
             String name,
             ComparatorType comparatorType,
-            ExtTLongObjectHashMap<InternalFullColumnsFacet.FullEntry> entries,
+            ExtTHashMap<String, FullEntry> entries,
             boolean cachedEntries,
             long size,
             long from,
@@ -171,7 +171,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         this.comparatorType = comparatorType;
         this.tEntries = entries;
         this.cachedEntries = cachedEntries;
-        this.entries = entries.valueCollection();
+        this.entries = entries.values();
         this.size = size;
         this.from = from;
         this.total = total;
@@ -241,7 +241,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
 
     void releaseCache() {
         if (cachedEntries) {
-            CacheRecycler.pushLongObjectMap(tEntries);
+            CacheRecycler.pushHashMap(tEntries);
             cachedEntries = false;
             tEntries = null;
         }
@@ -279,7 +279,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
             return internalFacet;
         }
 
-        ExtTLongObjectHashMap<FullEntry> map = CacheRecycler.popLongObjectMap();
+        ExtTHashMap<String, FullEntry> map = CacheRecycler.popHashMap();
 
         for (Facet facet : facets) {
             InternalFullColumnsFacet columnsFacet = (InternalFullColumnsFacet) facet;
@@ -323,7 +323,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
             ordered.add(value);
         }
 
-        CacheRecycler.pushLongObjectMap(map);
+        CacheRecycler.pushHashMap(map);
 
         // just initialize it as already ordered facet
         InternalFullColumnsFacet ret = new InternalFullColumnsFacet();
@@ -408,7 +408,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         int size = in.readVInt();
         entries = new ArrayList<FullEntry>(size);
         for (int i = 0; i < size; i++) {
-            entries.add(new FullEntry(in.readStringArray(), in.readLong(), in.readVLong(), in.readDouble(), in.readDouble(), in.readVLong(), in.readDouble()));
+            entries.add(new FullEntry(in.readStringArray(), in.readString(), in.readVLong(), in.readDouble(), in.readDouble(), in.readVLong(), in.readDouble()));
         }
     }
 
@@ -435,7 +435,7 @@ public class InternalFullColumnsFacet extends InternalColumnsFacet {
         out.writeVInt(entries.size());
         for (FullEntry entry : entries) {
             out.writeStringArray(entry.keys);
-            out.writeLong(entry.key);
+            out.writeString(entry.key);
             out.writeVLong(entry.count);
             out.writeDouble(entry.min);
             out.writeDouble(entry.max);

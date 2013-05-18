@@ -344,12 +344,12 @@ public interface ColumnsFacet extends Facet, Iterable<ColumnsFacet.Entry> {
         /**
          * The key value of the columns.
          */
-        long key();
+        String key();
 
         /**
          * The key value of the columns.
          */
-        long getKey();
+        String getKey();
 
         /**
          * The number of hits that fall within that key "range" or "interval".
